@@ -1,0 +1,9 @@
+Package: com.reverse.videostartool
+Name: VideoStarTool Pro
+Depends: mobilesubstrate (>= 0.9.5000)
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Tweak VideoStar: Auto nhập đa lớp thông minh & Thanh công cụ chia Beat Timeline chuyên nghiệp.
+Maintainer: ReverseEngineer
+Author: ReverseEngineer
+Section: Tweaks
