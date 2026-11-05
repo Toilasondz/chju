@@ -1,29 +1,56 @@
 name: Build VideoStar Tweak
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Cho phép bấm nút "Run workflow" thủ công trên GitHub
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-14 # Sử dụng runner macOS Apple Silicon mới nhất của GitHub
     steps:
-      - uses: actions/checkout@v3
+      # 1. Cập nhật Checkout lên v4
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
+      # 2. Cài đặt Theos framework
       - name: Setup Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          echo "THEOS=~/theos" >> $GITHUB_ENV
+          echo "THEOS=$HOME/theos" >> $GITHUB_ENV
 
+      # 3. Tải iOS 14.5 SDK chuẩn
       - name: Setup iOS SDK
         run: |
           git clone --quiet -n --depth=1 --filter=tree:0 https://github.com/theos/sdks.git ~/theos/sdks
-          cd ~/theos/sdks && git sparse-checkout set --no-cone iPhoneOS14.5.sdk && git checkout
-          
-      - name: Build Tweak
+          cd ~/theos/sdks
+          git sparse-checkout set --no-cone iPhoneOS14.5.sdk
+          git checkout
+
+      # 4. Biên dịch Tweak
+      - name: Build Tweak Package
         run: |
           make package FINALPACKAGE=1
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+      # 5. Thu thập cả file .deb và file .dylib vào thư mục output
+      - name: Prepare Artifacts
+        run: |
+          mkdir -p output
+          # Sao chép file .deb
+          cp packages/*.deb output/ 2>/dev/null || true
+          # Tìm và trích xuất file .dylib thô
+          find .theos -name "*.dylib" -exec cp {} output/ \; 2>/dev/null || true
+          echo "Danh sách file đã biên dịch:"
+          ls -lh output/
+
+      # 6. Upload Artifacts chuẩn v4 (Không còn bị lỗi deprecation)
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: VideoStarTool-Package
-          path: packages/*.deb
+          name: VideoStarTool-Build-${{ github.run_number }}
+          path: output/*
+          if-no-files-found: error
